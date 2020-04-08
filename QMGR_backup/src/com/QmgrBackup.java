@@ -12,24 +12,24 @@ import java.util.regex.Pattern;
 public class QmgrBackup {
 	public static void main(String[] args) throws IOException, InterruptedException
 	{
-		ArrayList<String> qm_names = QmgrDisplay();
+		ArrayList<String> qm_names = QmgrDisplay(); //calling QmgrDisplay method
 		
 		for(int x=0 ; x < qm_names.size() ; x++) {
 			String s = qm_names.get(x);
 			System.out.println(s);
 		}
 		
-		ExecuteDmpCommand(qm_names);
+		ExecuteDmpCommand(qm_names);  //calling ExecuteDmpCommand method
 	}
 
-	public static ArrayList<String> QmgrDisplay() throws IOException, InterruptedException 
+	public static ArrayList<String> QmgrDisplay() throws IOException, InterruptedException   //function for dspmq
 	{
 	    String cmd = "dspmq";
 	    System.out.println("\n\nExecuting command: " + cmd);
 	    Process p1 = Runtime.getRuntime().exec(cmd);
 	    
-	    int result = p1.waitFor();	    
-	    System.out.println("\nProcess exit code: " + result);
+	    int result1 = p1.waitFor();	    
+	    System.out.println("Process exit code: " + result1);
 	    System.out.println("\n");
 	    System.out.println("Queue Managers present on the server :-");
 	    
@@ -38,7 +38,7 @@ public class QmgrBackup {
 	    String line1 ;
 	    while((line1 = reader1.readLine()) != null)
 	    {
-	    	String command = RegEx(line1);
+	    	String command = RegEx(line1); //calling RegEx method
 	    	arr1.add(command);
 	    	
 	    }
@@ -46,7 +46,7 @@ public class QmgrBackup {
 		
 	}
 	
-	public static String RegEx(String str)
+	public static String RegEx(String str)  //function for filtering out Qmgr names
 	{
 		Pattern QM_PATTERN = Pattern.compile("\\([A-Z0-9]+\\)");
 		Matcher qm_matcher = QM_PATTERN.matcher(str);
@@ -59,7 +59,9 @@ public class QmgrBackup {
 		return qm_value;
 	}
 	
-	public static void ExecuteDmpCommand(ArrayList<String> qms) throws IOException {
+	public static void ExecuteDmpCommand(ArrayList<String> qms) throws IOException, InterruptedException  //function for dmpmqcfg
+
+	{
 		for (int i = 0; i < qms.size(); i++) {
 			String qm = qms.get(i);
 			String cmd1 = "dmpmqcfg -m "+ qm;
@@ -67,15 +69,17 @@ public class QmgrBackup {
     		Process p1 = Runtime.getRuntime().exec(cmd1);
 		    BufferedReader reader1 = new BufferedReader(new InputStreamReader(p1.getInputStream()));		                        
 		    String line1;
-		    File f = new File(qm);
+		    File f = new File(qm+".txt");
 		    f.createNewFile();
-	    	FileWriter fr = new FileWriter(f);
+	    	FileWriter fr = new FileWriter(f);		    
 		    while ((line1 = reader1.readLine()) != null) {
 		    	fr.write(line1);
 		    	fr.write(System.lineSeparator());
 		    }  
 		    fr.close();
-		    System.out.println("The output has been written into the file: " + qm);
+    	    int result2 = p1.waitFor();	    
+    	    System.out.println("Process exit code: " + result2);		    
+		    System.out.println("\nThe output has been written into the file: " + qm+".txt");
 		}
 	}
 	
