@@ -69,7 +69,7 @@ public class QmgrBackup {
     		Process p1 = Runtime.getRuntime().exec(cmd1);
 		    BufferedReader reader1 = new BufferedReader(new InputStreamReader(p1.getInputStream()));		                        
 		    String line1;
-		    File f = new File(qm+".txt");
+		    File f = new File(qm+".mqsc");
 		    f.createNewFile();
 	    	FileWriter fr = new FileWriter(f);		    
 		    while ((line1 = reader1.readLine()) != null) {
@@ -77,9 +77,14 @@ public class QmgrBackup {
 		    	fr.write(System.lineSeparator());
 		    }  
 		    fr.close();
-    	    int result2 = p1.waitFor();	    
-    	    System.out.println("Process exit code: " + result2);		    
-		    System.out.println("\nThe output has been written into the file: " + qm+".txt");
+    	    int result2 = p1.waitFor();	
+    	    if(result2 ==0) 
+    	    {
+        	    System.out.println("Process exit code: " + result2);		    
+    		    System.out.println("\nThe output has been written into the file: " + qm+".mqsc");    	    	
+    	    }
+    	    else 
+    	    	System.out.println(qm + " :-Queue Manager is down");
 		}
 	}
 	
