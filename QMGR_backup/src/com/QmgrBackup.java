@@ -5,13 +5,27 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+
 public class QmgrBackup {
-	public static void main(String[] args) throws IOException, InterruptedException
+	public static void main(String[] args) throws IOException, InterruptedException, AddressException, MessagingException
 	{
+
+		String host = Hostname();
+		System.out.println("Hostname is " + host);
+		
 		ArrayList<String> qm_names = QmgrDisplay(); //calling QmgrDisplay method
 		
 		for(int x=0 ; x < qm_names.size() ; x++) {
@@ -19,7 +33,19 @@ public class QmgrBackup {
 			System.out.println(s);
 		}
 		
-		ExecuteDmpCommand(qm_names);  //calling ExecuteDmpCommand method
+//		ArrayList<String> DmpCommand = ExecuteDmpCommand(qm_names) ;  //calling ExecuteDmpCommand method
+//		System.out.println("\nResults-");
+//		for(int x=0 ; x < DmpCommand.size() ; x++) {
+//			String s = DmpCommand.get(x);
+//			System.out.println(s);
+//		}
+		
+		String DmpCommand = ExecuteDmpCommand(qm_names) ;
+		System.out.println("\nResults-") ;
+		System.out.println(DmpCommand);
+		
+		
+		mailFunction(DmpCommand) ;
 	}
 
 	public static ArrayList<String> QmgrDisplay() throws IOException, InterruptedException   //function for dspmq
@@ -59,33 +85,106 @@ public class QmgrBackup {
 		return qm_value;
 	}
 	
-	public static void ExecuteDmpCommand(ArrayList<String> qms) throws IOException, InterruptedException  //function for dmpmqcfg
+	public static String ExecuteDmpCommand(ArrayList<String> qms) throws IOException, InterruptedException  //function for dmpmqcfg
 
 	{
-		for (int i = 0; i < qms.size(); i++) {
+		ArrayList<String> arr2 = new ArrayList<String>();
+		String output = "" ;
+		for (int i = 0; i < qms.size(); i++) 
+		{
 			String qm = qms.get(i);
-			String cmd1 = "dmpmqcfg -m "+ qm;
-    		System.out.println("\n\nExecuting command: " + cmd1);
-    		Process p1 = Runtime.getRuntime().exec(cmd1);
-		    BufferedReader reader1 = new BufferedReader(new InputStreamReader(p1.getInputStream()));		                        
-		    String line1;
-		    File f = new File(qm+".mqsc");
+			String cmd2 = "dmpmqcfg -m "+ qm + " -a all -o 1line";
+    		System.out.println("\n\nExecuting command: " + cmd2);
+    		Process p2 = Runtime.getRuntime().exec(cmd2);
+		    BufferedReader reader2 = new BufferedReader(new InputStreamReader(p2.getInputStream()));		                        
+		    String line2;
+		    File f = new File("/jackfruit/MQ_installer/QMGR_backup/"+ qm+".mqsc");
+//		    System.out.println(f.getPath());
 		    f.createNewFile();
 	    	FileWriter fr = new FileWriter(f);		    
-		    while ((line1 = reader1.readLine()) != null) {
-		    	fr.write(line1);
+		    while ((line2 = reader2.readLine()) != null) 
+		    {
+		    	fr.write(line2);
 		    	fr.write(System.lineSeparator());
 		    }  
 		    fr.close();
-    	    int result2 = p1.waitFor();	
+    	    int result2 = p2.waitFor();
     	    if(result2 ==0) 
-    	    {
-        	    System.out.println("Process exit code: " + result2);		    
-    		    System.out.println("\nThe output has been written into the file: " + qm+".mqsc");    	    	
+    	    { 
+    	    	String a = qm + " is up. The output has been written into the file: " + qm+".mqsc" ;    		    
+//    		    System.out.println("The output has been written into the file: " + qm+".mqsc");
+        	    System.out.println("Process exit code: " + result2);
+//        	    arr2.add(a) ;
+//        	    output = output +a+ "\n" ;
+        	    output += a+ "\n" ;
     	    }
     	    else 
-    	    	System.out.println(qm + " :-Queue Manager is down");
+    	    {
+    	    	String b = qm + " is down. Backup failed." ;
+//    	    	System.out.println(qm + " is down. Backup failed.");
+    	    	System.out.println("Process exit code: " + result2);
+    	    	f.delete(); 
+//    	    	arr2.add(b) ;
+    	    	output += b+ "\n" ;
+    	    	
+    	    }
 		}
+		return output;
+	}
+	
+	public static String Hostname() throws IOException 
+	{
+		String cmd3 = "hostname" ;
+		Process p3 = Runtime.getRuntime().exec(cmd3);
+		String hostname = "";
+		BufferedReader reader3 = new BufferedReader(new InputStreamReader(p3.getInputStream()));
+		
+		String line3;
+		
+		while ((line3 = reader3.readLine()) != null) 
+		{
+	    	hostname = line3;
+	    } 
+		return hostname ;
+	}
+	
+	public static void mailFunction (String text) throws AddressException, MessagingException, IOException 
+	{
+		
+		final String mailServer = "smtp-z1-nomx.lilly.com" ;
+		final String username = "" ;
+		final String password = "" ;
+		
+		String fromAddress = "Maintenance_USMAIL-GMPNT@lilly.com" ;
+		String toAddress = "anand_vishal@network.lilly.com" ;
+//		String ccAddress = "saxena_aparna@network.lilly.com" ;
+		String subject = "JAVA mail API" ;
+		String message = "Hello Team,\n\nBackup of Queue managers present on " +Hostname()+ " taken successfully on path /jackfruit/MQ_installer/QMGR_backup/. \n\nResults:-\n\n "+text ;
+		
+		Properties properties = System.getProperties() ;
+		properties.put("mail.smtp.starttls.enable", "true");
+		properties.put("mail.smtp.host" , mailServer) ;
+		properties.put("mail.smtp.auth" , true) ;
+		properties.put("mail.smtp.port" , 25);
+		
+
+		Session session = Session.getInstance(properties) ;
+		MimeMessage msg = new MimeMessage(session) ;
+		
+		msg.setFrom(new InternetAddress(fromAddress));
+		msg.addRecipients(Message.RecipientType.TO, toAddress);
+//		msg.addRecipients(Message.RecipientType.CC, ccAddress);
+		msg.setSubject(subject);
+		msg.setText(message);	
+
+		
+		
+		Transport tr = session.getTransport("smtp");
+		tr.connect(mailServer, username);
+		tr.sendMessage(msg, msg.getAllRecipients());
+		tr.close();
+		
+		System.out.println("\nEmail sent successfully to MQ team.");	
 	}
 	
 
