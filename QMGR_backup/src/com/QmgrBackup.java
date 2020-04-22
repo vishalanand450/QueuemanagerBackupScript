@@ -6,7 +6,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -23,29 +25,32 @@ public class QmgrBackup {
 	public static void main(String[] args) throws IOException, InterruptedException, AddressException, MessagingException
 	{
 
-		String host = Hostname();
-		System.out.println("Hostname is " + host);
+		String host = Hostname() ;  //calling HostName function
+		System.out.println("\nHostname is " + host);
 		
-		ArrayList<String> qm_names = QmgrDisplay(); //calling QmgrDisplay method
+		ArrayList<String> qm_names = QmgrDisplay(); //calling QmgrDisplay function
 		
-		for(int x=0 ; x < qm_names.size() ; x++) {
+		for(int x=0 ; x < qm_names.size() ; x++) 
+		{
 			String s = qm_names.get(x);
 			System.out.println(s);
 		}
 		
-//		ArrayList<String> DmpCommand = ExecuteDmpCommand(qm_names) ;  //calling ExecuteDmpCommand method
+//		ArrayList<String> DmpCommand = ExecuteDmpCommand(qm_names) ;  
 //		System.out.println("\nResults-");
 //		for(int x=0 ; x < DmpCommand.size() ; x++) {
 //			String s = DmpCommand.get(x);
 //			System.out.println(s);
 //		}
 		
-		String DmpCommand = ExecuteDmpCommand(qm_names) ;
+		String DmpCommand = ExecuteDmpCommand(qm_names) ;  //calling ExecuteDmpCommand function
 		System.out.println("\nResults-") ;
 		System.out.println(DmpCommand);
 		
+		DeleteOldFile() ;
 		
-		mailFunction(DmpCommand) ;
+		
+//		mailFunction(DmpCommand) ;  //calling mail function
 	}
 
 	public static ArrayList<String> QmgrDisplay() throws IOException, InterruptedException   //function for dspmq
@@ -98,7 +103,7 @@ public class QmgrBackup {
     		Process p2 = Runtime.getRuntime().exec(cmd2);
 		    BufferedReader reader2 = new BufferedReader(new InputStreamReader(p2.getInputStream()));		                        
 		    String line2;
-		    File f = new File("/jackfruit/MQ_installer/QMGR_backup/"+ qm+".mqsc");
+		    File f = new File("/jackfruit/MQ_installer/QMGR_backup/"+qm+"_"+GetCurrentTimeStamp()+".mqsc" );
 //		    System.out.println(f.getPath());
 		    f.createNewFile();
 	    	FileWriter fr = new FileWriter(f);		    
@@ -111,7 +116,7 @@ public class QmgrBackup {
     	    int result2 = p2.waitFor();
     	    if(result2 ==0) 
     	    { 
-    	    	String a = qm + " is up. The output has been written into the file: " + qm+".mqsc" ;    		    
+    	    	String a = qm + " is up. The output has been written into the file: " + qm+"_"+GetCurrentTimeStamp()+".mqsc on path /jackfruit/MQ_installer/QMGR_backup/" ;    		    
 //    		    System.out.println("The output has been written into the file: " + qm+".mqsc");
         	    System.out.println("Process exit code: " + result2);
 //        	    arr2.add(a) ;
@@ -152,13 +157,13 @@ public class QmgrBackup {
 	{
 		
 		final String mailServer = "smtp-z1-nomx.lilly.com" ;
-		final String username = "" ;
+		final String username = "Maintenance_USMAIL-GMPNT@lilly.com" ;
 		final String password = "" ;
 		
 		String fromAddress = "Maintenance_USMAIL-GMPNT@lilly.com" ;
 		String toAddress = "anand_vishal@network.lilly.com" ;
-//		String ccAddress = "saxena_aparna@network.lilly.com" ;
-		String subject = "JAVA mail API" ;
+//		String ccAddress = "" ;
+		String subject = "Queue Manager backup on " +Hostname() ;
 		String message = "Hello Team,\n\nBackup of Queue managers present on " +Hostname()+ " taken successfully on path /jackfruit/MQ_installer/QMGR_backup/. \n\nResults:-\n\n "+text ;
 		
 		Properties properties = System.getProperties() ;
@@ -184,8 +189,38 @@ public class QmgrBackup {
 		tr.sendMessage(msg, msg.getAllRecipients());
 		tr.close();
 		
-		System.out.println("\nEmail sent successfully to MQ team.");	
+		System.out.println("\nEmail sent successfully to MQ team.\n\n");	
 	}
 	
+	public static String GetCurrentTimeStamp() 
+	{
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss"); 
+        Date now = new Date();
+        String strDate = dateFormat.format(now);
+        return strDate;
+    }
+	
+	public static void DeleteOldFile() 
+	{
+		File f = new File ("/jackfruit/MQ_installer/QMGR_backup/") ;
+		
+		if (f.exists())
+		{ 
+            File[] listFiles = f.listFiles();
+ 
+            long daysForDeletion = System.currentTimeMillis() - (1 * 24 * 60 * 60 * 1000);
+ 
+            for (File listFile: listFiles) 
+            { 
+                if (listFile.getName().contains(".mqsc") && listFile.lastModified() < daysForDeletion) 
+                {                	            	
+                	listFile.delete() ;
+                }               	
+               
+            }
+            
+		}
+		
+	}	
 
 }
